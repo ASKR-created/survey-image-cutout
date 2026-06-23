@@ -104,6 +104,13 @@
         position: relative;
         min-height: 0;
         overflow: hidden;
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+      }
+
+      .viewer-shell.dragging {
+        cursor: grabbing;
       }
 
       .demo-space {
@@ -137,7 +144,8 @@
         width: 240px;
         height: 240px;
         transform-style: preserve-3d;
-        transform: rotateX(-18deg) rotateY(38deg);
+        transform: rotateX(var(--demo-tilt, -18deg)) rotateY(var(--demo-turn, 38deg));
+        transition: transform 80ms linear;
       }
 
       .demo-axis::before,
@@ -311,7 +319,7 @@
           <div class="demo-floor"></div>
           <div class="demo-axis"></div>
           <div class="demo-card">
-            確認用の仮3D空間です。models/model.glb を置くか「3Dモデル」から選ぶと、実モデル表示に切り替わります。
+            確認用の仮3D空間です。視点高さは地面から1500mm想定。models/model.glb を置くか「3Dモデル」から選ぶと、実モデル表示に切り替わります。
           </div>
         </div>
 
@@ -319,6 +327,9 @@
           id="viewer"
           src="models/model.glb"
           camera-controls
+          camera-target="0m 1.5m 0m"
+          camera-orbit="0deg 82deg 6m"
+          field-of-view="45deg"
           auto-rotate
           ar
           shadow-intensity="0.85"
@@ -336,13 +347,14 @@
         </div>
 
         <div id="status" class="status">
-          model: models/model.glb / filter: filters/subjective-filter.png
+          model: models/model.glb / filter: filters/subjective-filter.png / 視点高: 1500mm / 左ドラッグで視点変更
         </div>
       </section>
     </main>
 
     <script>
       const viewer = document.querySelector("#viewer");
+      const viewerShell = document.querySelector(".viewer-shell");
       const modelInput = document.querySelector("#model-file");
       const filterInput = document.querySelector("#filter-file");
       const filterLayer = document.querySelector("#subjective-filter");
@@ -354,9 +366,20 @@
       let filterUrl;
       let modelName = "models/model.glb";
       let filterName = "filters/subjective-filter.png";
+      const eyeHeightMeters = 1.5;
+      let dragging = false;
+      let lastPointerX = 0;
+      let lastPointerY = 0;
+      let demoTurn = 38;
+      let demoTilt = -18;
 
       function updateStatus() {
-        status.textContent = `model: ${modelName} / filter: ${filterName}`;
+        status.textContent = `model: ${modelName} / filter: ${filterName} / 視点高: 1500mm / 左ドラッグで視点変更`;
+      }
+
+      function updateDemoCamera() {
+        viewerShell.style.setProperty("--demo-turn", `${demoTurn}deg`);
+        viewerShell.style.setProperty("--demo-tilt", `${demoTilt}deg`);
       }
 
       modelInput.addEventListener("change", () => {
@@ -366,6 +389,8 @@
         if (modelUrl) URL.revokeObjectURL(modelUrl);
         modelUrl = URL.createObjectURL(file);
         viewer.src = modelUrl;
+        viewer.setAttribute("camera-target", `0m ${eyeHeightMeters}m 0m`);
+        viewer.setAttribute("camera-orbit", "0deg 82deg 6m");
         modelName = file.name;
         document.body.classList.add("no-model");
         updateStatus();
@@ -404,6 +429,41 @@
         subjectiveToggle.setAttribute("aria-pressed", String(active));
         filterLayer.classList.toggle("active", active);
       });
+
+      viewerShell.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0 || !document.body.classList.contains("no-model")) return;
+        dragging = true;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        viewerShell.classList.add("dragging");
+        viewerShell.setPointerCapture(event.pointerId);
+      });
+
+      viewerShell.addEventListener("pointermove", (event) => {
+        if (!dragging) return;
+        const deltaX = event.clientX - lastPointerX;
+        const deltaY = event.clientY - lastPointerY;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        demoTurn += deltaX * 0.35;
+        demoTilt = Math.max(-70, Math.min(25, demoTilt - deltaY * 0.25));
+        updateDemoCamera();
+      });
+
+      viewerShell.addEventListener("pointerup", (event) => {
+        dragging = false;
+        viewerShell.classList.remove("dragging");
+        if (viewerShell.hasPointerCapture(event.pointerId)) {
+          viewerShell.releasePointerCapture(event.pointerId);
+        }
+      });
+
+      viewerShell.addEventListener("pointercancel", () => {
+        dragging = false;
+        viewerShell.classList.remove("dragging");
+      });
+
+      updateDemoCamera();
     </script>
   </body>
 </html>
