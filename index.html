@@ -139,37 +139,6 @@
         opacity: 0.72;
       }
 
-      .demo-axis {
-        position: absolute;
-        width: 240px;
-        height: 240px;
-        transform-style: preserve-3d;
-        transform: rotateX(var(--demo-tilt, -18deg)) rotateY(var(--demo-turn, 38deg));
-        transition: transform 80ms linear;
-      }
-
-      .demo-axis::before,
-      .demo-axis::after {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        background: var(--accent);
-        transform-origin: left center;
-      }
-
-      .demo-axis::before {
-        width: 210px;
-        height: 4px;
-        transform: translateY(-2px);
-      }
-
-      .demo-axis::after {
-        width: 4px;
-        height: 210px;
-        transform: translateX(-2px) translateY(-105px);
-      }
-
       .demo-card {
         position: absolute;
         top: 18px;
@@ -317,7 +286,6 @@
       <section class="viewer-shell" aria-label="3D viewer">
         <div class="demo-space" aria-hidden="true">
           <div class="demo-floor"></div>
-          <div class="demo-axis"></div>
           <div class="demo-card">
             確認用の仮3D空間です。視点高さは地面から1500mm想定。models/model.glb を置くか「3Dモデル」から選ぶと、実モデル表示に切り替わります。
           </div>
