@@ -45,6 +45,36 @@
         min-height: 100vh;
       }
 
+      .split-workspace {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+        min-height: 0;
+      }
+
+      .plan-pane,
+      .viewer-pane {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-width: 0;
+        min-height: 0;
+        border-left: 1px solid var(--line);
+      }
+
+      .plan-pane {
+        border-left: 0;
+      }
+
+      .pane-title {
+        min-height: 38px;
+        padding: 9px 14px;
+        border-bottom: 1px solid var(--line);
+        background: color-mix(in srgb, var(--panel) 90%, transparent);
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
       header {
         display: flex;
         align-items: center;
@@ -113,6 +143,51 @@
         cursor: grabbing;
       }
 
+      .plan-space {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-height: calc(100vh - 101px);
+        overflow: hidden;
+        background-color: #e8eeed;
+        background-image:
+          linear-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1px),
+          linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1px);
+        background-size: 36px 36px;
+      }
+
+      .plan-origin {
+        position: absolute;
+        width: min(70vw, 70vh);
+        max-width: 520px;
+        aspect-ratio: 1;
+        border: 2px solid color-mix(in srgb, var(--accent) 42%, transparent);
+        transform: rotate(var(--plan-turn, 0deg));
+      }
+
+      .plan-origin::before,
+      .plan-origin::after {
+        content: "";
+        position: absolute;
+        background: color-mix(in srgb, var(--accent) 55%, transparent);
+      }
+
+      .plan-origin::before {
+        left: 50%;
+        top: -10%;
+        width: 2px;
+        height: 120%;
+        transform: translateX(-1px);
+      }
+
+      .plan-origin::after {
+        left: -10%;
+        top: 50%;
+        width: 120%;
+        height: 2px;
+        transform: translateY(-1px);
+      }
+
       .demo-space {
         position: absolute;
         inset: 0;
@@ -158,7 +233,7 @@
         z-index: 1;
         width: 100%;
         height: 100%;
-        min-height: calc(100vh - 63px);
+        min-height: calc(100vh - 101px);
         background: transparent;
         --progress-bar-color: var(--accent);
         --poster-color: transparent;
@@ -169,7 +244,7 @@
         pointer-events: none;
       }
 
-      .subjective-filter {
+      .filter-layer {
         position: absolute;
         inset: 0;
         z-index: 2;
@@ -180,15 +255,20 @@
         transition: opacity 160ms ease;
       }
 
-      .subjective-filter.active {
+      .filter-layer.active {
         opacity: 1;
       }
 
-      .subjective-filter img {
+      .filter-layer img {
         width: min(100vw, 100vh * 1.43);
         height: auto;
         max-height: 100vh;
         object-fit: contain;
+      }
+
+      .plan-space .filter-layer img {
+        width: min(78%, 72vh);
+        max-height: 78%;
       }
 
       .filter-reticle {
@@ -223,12 +303,16 @@
         transform: translateY(-1px);
       }
 
-      .subjective-filter.use-reticle img {
+      .filter-layer.use-reticle img {
         display: none;
       }
 
-      .subjective-filter.use-reticle .filter-reticle {
+      .filter-layer.use-reticle .filter-reticle {
         display: block;
+      }
+
+      .plan-space .filter-reticle {
+        width: min(74%, 68vh);
       }
 
       .status {
@@ -264,8 +348,19 @@
           justify-content: flex-start;
         }
 
+        .split-workspace {
+          grid-template-columns: 1fr;
+        }
+
+        .plan-pane,
+        .viewer-pane {
+          min-height: 52vh;
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+
         model-viewer {
-          min-height: calc(100vh - 111px);
+          min-height: 52vh;
         }
       }
     </style>
@@ -283,41 +378,57 @@
         </div>
       </header>
 
-      <section class="viewer-shell" aria-label="3D viewer">
-        <div class="demo-space" aria-hidden="true">
-          <div class="demo-floor"></div>
-          <div class="demo-card">
-            確認用の仮3D空間です。視点高さは地面から1500mm想定。models/model.glb を置くか「3Dモデル」から選ぶと、実モデル表示に切り替わります。
+      <div class="split-workspace">
+        <section class="plan-pane" aria-label="plan view">
+          <div class="pane-title">左: 平面ビュー</div>
+          <div class="plan-space">
+            <div class="plan-origin" aria-hidden="true"></div>
+            <div class="filter-layer active" aria-hidden="true">
+              <img class="filter-image" src="filters/subjective-filter.png" alt="" />
+              <div class="filter-reticle"></div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <model-viewer
-          id="viewer"
-          src="models/model.glb"
-          camera-controls
-          camera-target="0m 1.5m 0m"
-          camera-orbit="0deg 82deg 6m"
-          field-of-view="45deg"
-          auto-rotate
-          ar
-          shadow-intensity="0.85"
-          exposure="1"
-          alt="Survey 3D model"
-        >
-          <div class="fallback" slot="error">
-            models/model.glb が見つかりません。modelsフォルダに3Dモデルを置くか、「3Dモデル」から .glb/.gltf を選択してください。
+        <section class="viewer-pane" aria-label="3D view">
+          <div class="pane-title">右: 3Dビュー</div>
+          <div class="viewer-shell">
+            <div class="demo-space" aria-hidden="true">
+              <div class="demo-floor"></div>
+              <div class="demo-card">
+                確認用の仮3D空間です。視点高さは地面から1500mm想定。models/model.glb を置くか「3Dモデル」から選ぶと、実モデル表示に切り替わります。
+              </div>
+            </div>
+
+            <model-viewer
+              id="viewer"
+              src="models/model.glb"
+              camera-controls
+              camera-target="0m 1.5m 0m"
+              camera-orbit="0deg 82deg 6m"
+              field-of-view="45deg"
+              auto-rotate
+              ar
+              shadow-intensity="0.85"
+              exposure="1"
+              alt="Survey 3D model"
+            >
+              <div class="fallback" slot="error">
+                models/model.glb が見つかりません。modelsフォルダに3Dモデルを置くか、「3Dモデル」から .glb/.gltf を選択してください。
+              </div>
+            </model-viewer>
+
+            <div id="subjective-filter" class="filter-layer active" aria-hidden="true">
+              <img class="filter-image" src="filters/subjective-filter.png" alt="" />
+              <div class="filter-reticle"></div>
+            </div>
+
+            <div id="status" class="status">
+              model: models/model.glb / filter: filters/subjective-filter.png / 視点高: 1500mm / 左ドラッグで視点変更
+            </div>
           </div>
-        </model-viewer>
-
-        <div id="subjective-filter" class="subjective-filter active" aria-hidden="true">
-          <img id="filter-image" src="filters/subjective-filter.png" alt="" />
-          <div class="filter-reticle"></div>
-        </div>
-
-        <div id="status" class="status">
-          model: models/model.glb / filter: filters/subjective-filter.png / 視点高: 1500mm / 左ドラッグで視点変更
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
 
     <script>
@@ -325,8 +436,8 @@
       const viewerShell = document.querySelector(".viewer-shell");
       const modelInput = document.querySelector("#model-file");
       const filterInput = document.querySelector("#filter-file");
-      const filterLayer = document.querySelector("#subjective-filter");
-      const filterImage = document.querySelector("#filter-image");
+      const filterLayers = document.querySelectorAll(".filter-layer");
+      const filterImages = document.querySelectorAll(".filter-image");
       const subjectiveToggle = document.querySelector("#subjective-toggle");
       const status = document.querySelector("#status");
 
@@ -350,6 +461,18 @@
         viewerShell.style.setProperty("--demo-tilt", `${demoTilt}deg`);
       }
 
+      function setFilterReticleMode(useReticle) {
+        filterLayers.forEach((layer) => {
+          layer.classList.toggle("use-reticle", useReticle);
+        });
+      }
+
+      function setFilterSource(src) {
+        filterImages.forEach((image) => {
+          image.src = src;
+        });
+      }
+
       modelInput.addEventListener("change", () => {
         const file = modelInput.files && modelInput.files[0];
         if (!file) return;
@@ -370,9 +493,9 @@
 
         if (filterUrl) URL.revokeObjectURL(filterUrl);
         filterUrl = URL.createObjectURL(file);
-        filterImage.src = filterUrl;
+        setFilterSource(filterUrl);
         filterName = file.name;
-        filterLayer.classList.remove("use-reticle");
+        setFilterReticleMode(false);
         updateStatus();
       });
 
@@ -384,18 +507,22 @@
         document.body.classList.add("no-model");
       });
 
-      filterImage.addEventListener("error", () => {
-        filterLayer.classList.add("use-reticle");
-      });
+      filterImages.forEach((image) => {
+        image.addEventListener("error", () => {
+          setFilterReticleMode(true);
+        });
 
-      filterImage.addEventListener("load", () => {
-        filterLayer.classList.remove("use-reticle");
+        image.addEventListener("load", () => {
+          setFilterReticleMode(false);
+        });
       });
 
       subjectiveToggle.addEventListener("click", () => {
         const active = subjectiveToggle.getAttribute("aria-pressed") !== "true";
         subjectiveToggle.setAttribute("aria-pressed", String(active));
-        filterLayer.classList.toggle("active", active);
+        filterLayers.forEach((layer) => {
+          layer.classList.toggle("active", active);
+        });
       });
 
       viewerShell.addEventListener("pointerdown", (event) => {
