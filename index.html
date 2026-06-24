@@ -264,7 +264,7 @@
         bottom: -14vh;
         width: 140vw;
         height: 58vh;
-        transform: rotateX(68deg);
+        transform: rotateX(var(--demo-tilt, 68deg)) rotateZ(var(--demo-turn, 38deg));
         transform-origin: center bottom;
         background-image:
           linear-gradient(color-mix(in srgb, var(--accent) 28%, transparent) 1px, transparent 1px),
@@ -446,9 +446,6 @@
           <div class="viewer-shell">
             <div class="demo-space" aria-hidden="true">
               <div class="demo-floor"></div>
-              <div class="demo-card">
-                確認用の仮3D空間です。視点高さは地面から1500mm想定。models/model.glb を置くか「3Dモデル」から選ぶと、実モデル表示に切り替わります。
-              </div>
             </div>
 
             <model-viewer
@@ -474,9 +471,6 @@
               <div class="filter-reticle"></div>
             </div>
 
-            <div id="status" class="status">
-              model: models/model.glb / filter: filters/subjective-filter.png / 視点高: 1500mm / 左ドラッグで視点変更
-            </div>
           </div>
         </section>
       </div>
@@ -502,10 +496,12 @@
       let lastPointerX = 0;
       let lastPointerY = 0;
       let demoTurn = 38;
-      let demoTilt = -18;
+      let demoTilt = 68;
 
       function updateStatus() {
-        status.textContent = `model: ${modelName} / filter: ${filterName} / 視点高: 1500mm / 左ドラッグで視点変更`;
+        if (status) {
+          status.textContent = `model: ${modelName} / filter: ${filterName} / 視点高: 1500mm / 左ドラッグで視点変更`;
+        }
       }
 
       function updateDemoCamera() {
@@ -612,7 +608,7 @@
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
         demoTurn += deltaX * 0.35;
-        demoTilt = Math.max(-70, Math.min(25, demoTilt - deltaY * 0.25));
+        demoTilt = Math.max(42, Math.min(78, demoTilt - deltaY * 0.12));
         updateDemoCamera();
       });
 
