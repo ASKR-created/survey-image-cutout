@@ -14,6 +14,8 @@
         --muted: #65707a;
         --line: #d6dce0;
         --accent: #0f6f62;
+        --grid-size: 36px;
+        --grid-unit: "1000mm";
       }
 
       @media (prefers-color-scheme: dark) {
@@ -172,7 +174,32 @@
         background-image:
           linear-gradient(color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1px),
           linear-gradient(90deg, color-mix(in srgb, var(--accent) 20%, transparent) 1px, transparent 1px);
-        background-size: 36px 36px;
+        background-size: var(--grid-size) var(--grid-size);
+      }
+
+      .plan-scale {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--panel) 90%, transparent);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .plan-scale::before {
+        content: "";
+        display: block;
+        width: var(--grid-size);
+        height: 3px;
+        border-radius: 999px;
+        background: var(--accent);
       }
 
       .plan-origin {
@@ -438,6 +465,7 @@
             <div class="plan-origin" aria-hidden="true"></div>
             <div class="camera-arrow" aria-hidden="true"></div>
             <div class="camera-marker" aria-hidden="true"></div>
+            <div class="plan-scale">1マス = 1000mm</div>
           </div>
         </section>
 
