@@ -47,8 +47,17 @@
 
       .split-workspace {
         display: grid;
-        grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+        grid-template-columns: 1fr;
         min-height: 0;
+      }
+
+      body.view-split .split-workspace {
+        grid-template-columns: minmax(280px, 0.9fr) minmax(360px, 1.1fr);
+      }
+
+      body.view-plan .viewer-pane,
+      body.view-3d .plan-pane {
+        display: none;
       }
 
       .plan-pane,
@@ -62,6 +71,10 @@
       }
 
       .plan-pane {
+        border-left: 0;
+      }
+
+      body:not(.view-split) .viewer-pane {
         border-left: 0;
       }
 
@@ -118,6 +131,12 @@
       }
 
       button[aria-pressed="true"] {
+        border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
+        background: var(--accent);
+        color: #fff;
+      }
+
+      .mode-button.active {
         border-color: color-mix(in srgb, var(--accent) 70%, var(--line));
         background: var(--accent);
         color: #fff;
@@ -186,6 +205,46 @@
         width: 120%;
         height: 2px;
         transform: translateY(-1px);
+      }
+
+      .camera-marker {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        border: 3px solid #ffffff;
+        border-radius: 50%;
+        background: #d83232;
+        box-shadow: 0 3px 10px rgb(0 0 0 / 22%);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+      }
+
+      .camera-arrow {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: min(22vw, 150px);
+        height: 4px;
+        border-radius: 999px;
+        background: #d83232;
+        box-shadow: 0 3px 10px rgb(0 0 0 / 18%);
+        transform: translateY(-50%) rotate(var(--camera-heading, 38deg));
+        transform-origin: left center;
+        z-index: 1;
+      }
+
+      .camera-arrow::after {
+        content: "";
+        position: absolute;
+        right: -1px;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        border-top: 4px solid #d83232;
+        border-right: 4px solid #d83232;
+        transform: translateY(-50%) rotate(45deg);
       }
 
       .demo-space {
@@ -266,11 +325,6 @@
         object-fit: contain;
       }
 
-      .plan-space .filter-layer img {
-        width: min(78%, 72vh);
-        max-height: 78%;
-      }
-
       .filter-reticle {
         position: relative;
         display: none;
@@ -311,10 +365,6 @@
         display: block;
       }
 
-      .plan-space .filter-reticle {
-        width: min(74%, 68vh);
-      }
-
       .status {
         position: absolute;
         z-index: 3;
@@ -348,7 +398,7 @@
           justify-content: flex-start;
         }
 
-        .split-workspace {
+        body.view-split .split-workspace {
           grid-template-columns: 1fr;
         }
 
@@ -365,7 +415,7 @@
       }
     </style>
   </head>
-  <body class="no-model">
+  <body class="no-model view-3d">
     <main>
       <header>
         <h1>Survey 3D Filter Viewer</h1>
@@ -375,6 +425,9 @@
           <label for="filter-file">主観フィルタ</label>
           <input id="filter-file" type="file" accept="image/png,image/jpeg,image/webp" />
           <button id="subjective-toggle" type="button" aria-pressed="true">主観</button>
+          <button class="mode-button" type="button" data-view="plan">平面</button>
+          <button class="mode-button active" type="button" data-view="3d">3D</button>
+          <button class="mode-button" type="button" data-view="split">分割</button>
         </div>
       </header>
 
@@ -383,10 +436,8 @@
           <div class="pane-title">左: 平面ビュー</div>
           <div class="plan-space">
             <div class="plan-origin" aria-hidden="true"></div>
-            <div class="filter-layer active" aria-hidden="true">
-              <img class="filter-image" src="filters/subjective-filter.png" alt="" />
-              <div class="filter-reticle"></div>
-            </div>
+            <div class="camera-arrow" aria-hidden="true"></div>
+            <div class="camera-marker" aria-hidden="true"></div>
           </div>
         </section>
 
@@ -439,6 +490,7 @@
       const filterLayers = document.querySelectorAll(".filter-layer");
       const filterImages = document.querySelectorAll(".filter-image");
       const subjectiveToggle = document.querySelector("#subjective-toggle");
+      const modeButtons = document.querySelectorAll(".mode-button");
       const status = document.querySelector("#status");
 
       let modelUrl;
@@ -459,6 +511,7 @@
       function updateDemoCamera() {
         viewerShell.style.setProperty("--demo-turn", `${demoTurn}deg`);
         viewerShell.style.setProperty("--demo-tilt", `${demoTilt}deg`);
+        document.body.style.setProperty("--camera-heading", `${demoTurn}deg`);
       }
 
       function setFilterReticleMode(useReticle) {
@@ -507,6 +560,12 @@
         document.body.classList.add("no-model");
       });
 
+      viewer.addEventListener("camera-change", () => {
+        const orbit = viewer.getCameraOrbit && viewer.getCameraOrbit();
+        if (!orbit || typeof orbit.theta !== "number") return;
+        document.body.style.setProperty("--camera-heading", `${orbit.theta * 180 / Math.PI}deg`);
+      });
+
       filterImages.forEach((image) => {
         image.addEventListener("error", () => {
           setFilterReticleMode(true);
@@ -522,6 +581,18 @@
         subjectiveToggle.setAttribute("aria-pressed", String(active));
         filterLayers.forEach((layer) => {
           layer.classList.toggle("active", active);
+        });
+      });
+
+      modeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const view = button.dataset.view;
+          document.body.classList.toggle("view-plan", view === "plan");
+          document.body.classList.toggle("view-3d", view === "3d");
+          document.body.classList.toggle("view-split", view === "split");
+          modeButtons.forEach((item) => {
+            item.classList.toggle("active", item === button);
+          });
         });
       });
 
