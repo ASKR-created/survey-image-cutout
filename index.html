@@ -264,7 +264,7 @@
         bottom: -14vh;
         width: 140vw;
         height: 58vh;
-        transform: rotateX(var(--demo-tilt, 68deg)) rotateZ(var(--demo-turn, 38deg));
+        transform: rotateX(var(--demo-tilt, 68deg)) rotateZ(var(--demo-turn, 38deg)) translateX(var(--demo-pan, 0px));
         transform-origin: center bottom;
         background-image:
           linear-gradient(color-mix(in srgb, var(--accent) 28%, transparent) 1px, transparent 1px),
@@ -497,6 +497,7 @@
       let lastPointerY = 0;
       let demoTurn = 38;
       let demoTilt = 68;
+      let demoPan = 0;
 
       function updateStatus() {
         if (status) {
@@ -507,6 +508,7 @@
       function updateDemoCamera() {
         viewerShell.style.setProperty("--demo-turn", `${demoTurn}deg`);
         viewerShell.style.setProperty("--demo-tilt", `${demoTilt}deg`);
+        viewerShell.style.setProperty("--demo-pan", `${demoPan}px`);
         document.body.style.setProperty("--camera-heading", `${demoTurn}deg`);
       }
 
@@ -593,7 +595,8 @@
       });
 
       viewerShell.addEventListener("pointerdown", (event) => {
-        if (event.button !== 0 || !document.body.classList.contains("no-model")) return;
+        if (event.button && event.button !== 0) return;
+        event.preventDefault();
         dragging = true;
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
@@ -608,6 +611,7 @@
         lastPointerX = event.clientX;
         lastPointerY = event.clientY;
         demoTurn += deltaX * 0.35;
+        demoPan += deltaX * 0.2;
         demoTilt = Math.max(42, Math.min(78, demoTilt - deltaY * 0.12));
         updateDemoCamera();
       });
@@ -621,6 +625,31 @@
       });
 
       viewerShell.addEventListener("pointercancel", () => {
+        dragging = false;
+        viewerShell.classList.remove("dragging");
+      });
+
+      viewerShell.addEventListener("mousedown", (event) => {
+        if (event.button !== 0) return;
+        dragging = true;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        viewerShell.classList.add("dragging");
+      });
+
+      window.addEventListener("mousemove", (event) => {
+        if (!dragging) return;
+        const deltaX = event.clientX - lastPointerX;
+        const deltaY = event.clientY - lastPointerY;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        demoTurn += deltaX * 0.35;
+        demoPan += deltaX * 0.2;
+        demoTilt = Math.max(42, Math.min(78, demoTilt - deltaY * 0.12));
+        updateDemoCamera();
+      });
+
+      window.addEventListener("mouseup", () => {
         dragging = false;
         viewerShell.classList.remove("dragging");
       });
